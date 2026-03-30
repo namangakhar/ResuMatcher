@@ -1,0 +1,35 @@
+SENIOR BACKEND ENGINEER – Stripe (Remote)
+
+About the Role:
+We're looking for a Senior Backend Engineer to join our Payments Infrastructure team. You'll design, build, and maintain highly available distributed systems that process millions of transactions daily. You'll work closely with product and platform teams to ship reliable, scalable payment solutions.
+
+Responsibilities:
+- Design and build scalable, fault-tolerant backend services handling high-throughput payment flows
+- Own end-to-end development of APIs and microservices in a distributed systems environment
+- Drive technical design reviews and architecture decisions
+- Improve observability, monitoring, and alerting for production systems
+- Mentor junior and mid-level engineers on best practices
+- Collaborate with security and compliance teams to ensure PCI-DSS compliance
+
+Requirements:
+- 5+ years of professional software engineering experience
+- Strong proficiency in Python or Java
+- Deep experience with distributed systems and microservices architecture
+- Hands-on experience with AWS (ECS, Lambda, DynamoDB, SQS) or equivalent cloud platforms
+- Proficiency with relational databases (PostgreSQL) and NoSQL databases
+- Experience building and consuming RESTful APIs at scale
+- Familiarity with containerization (Docker, Kubernetes) and CI/CD pipelines
+- Strong understanding of system design, scalability, and performance optimization
+- Excellent communication and collaboration skills
+
+Nice to Have:
+- Experience with payment systems or fintech domain
+- Familiarity with Terraform or infrastructure-as-code tools
+- Experience with event-driven architectures (Kafka, RabbitMQ)
+- Contributions to open source projects
+
+Benefits:
+- Competitive salary + equity
+- Remote-first culture
+- Learning & development budget
+- Health insurance

@@ -1,0 +1,42 @@
+NAMAN GAKHAR
+Software Engineer | Bangalore, India
+naman.gakhar@email.com | +91-9876543210 | linkedin.com/in/namangakhar | github.com/namangakhar
+
+PROFESSIONAL SUMMARY
+Results-driven Software Engineer with 3+ years of experience building scalable backend systems and cloud-native applications. Proficient in Python, Java, and modern DevOps practices. Passionate about designing clean APIs and solving complex distributed systems problems.
+
+TECHNICAL SKILLS
+Languages: Python, Java, JavaScript, SQL
+Frameworks: Django, Flask, Spring Boot, FastAPI
+Databases: PostgreSQL, MySQL, MongoDB, Redis
+Tools & Platforms: Docker, Git, Jenkins, Linux, Jira, Confluence
+Cloud: Basic AWS (EC2, S3), Google Cloud Platform (Cloud Run, BigQuery)
+Other: REST APIs, Microservices Architecture, Agile/Scrum
+
+PROFESSIONAL EXPERIENCE
+
+Software Engineer | Acme Tech Solutions | Jan 2023 – Present
+- Designed and developed RESTful microservices using Python/Django serving 15K+ requests per minute
+- Built an internal data pipeline that reduced report generation time by 40%
+- Collaborated with cross-functional teams to migrate monolithic services to microservices architecture
+- Implemented caching layer using Redis, reducing database load by 30%
+- Wrote comprehensive unit and integration tests achieving 85% code coverage
+
+Associate Software Engineer | Innovate Labs | Jul 2021 – Dec 2022
+- Developed backend modules for an e-commerce platform using Java/Spring Boot
+- Created REST APIs consumed by web and mobile clients with 99.5% uptime
+- Optimized SQL queries resulting in 25% improvement in page load times
+- Participated in code reviews and mentored 2 junior developers
+- Worked with Jenkins CI pipelines for automated testing and deployment
+
+EDUCATION
+Bachelor of Technology in Computer Science | VIT University | 2017 – 2021
+CGPA: 8.5/10
+
+CERTIFICATIONS
+- Google Cloud Associate Cloud Engineer (2024)
+- AWS Cloud Practitioner (2023)
+
+PROJECTS
+- Real-time Chat Application: Built using WebSockets and FastAPI with Redis pub/sub for message brokering
+- Expense Tracker API: REST API with Django REST Framework, JWT auth, deployed on Heroku
