@@ -8,7 +8,39 @@ load_dotenv()
 model_name = os.getenv("MODEL", "gemini-2.5-flash")
 
 
-# --- Tool: Save resume to state ---
+# --- Tool: Read resume from file ---
+def read_resume_file(tool_context: ToolContext) -> dict:
+    """Reads the candidate's resume from resume.txt file and stores it in state.
+
+    Returns:
+        The resume text or an error message.
+    """
+    try:
+        with open("resume.txt", "r") as f:
+            resume_text = f.read()
+        tool_context.state["RESUME"] = resume_text
+        return {"status": "success", "message": "Resume loaded from resume.txt", "preview": resume_text[:200] + "..."}
+    except FileNotFoundError:
+        return {"status": "error", "message": "resume.txt not found. Please place resume.txt in the project directory."}
+
+
+# --- Tool: Read JD from file ---
+def read_jd_file(tool_context: ToolContext) -> dict:
+    """Reads the job description from jd.txt file and stores it in state.
+
+    Returns:
+        The JD text or an error message.
+    """
+    try:
+        with open("jd.txt", "r") as f:
+            jd_text = f.read()
+        tool_context.state["JD"] = jd_text
+        return {"status": "success", "message": "JD loaded from jd.txt", "preview": jd_text[:200] + "..."}
+    except FileNotFoundError:
+        return {"status": "error", "message": "jd.txt not found. Please place jd.txt in the project directory."}
+
+
+# --- Tool: Save resume text to state (for paste input) ---
 def save_resume(tool_context: ToolContext, resume_text: str) -> dict:
     """Saves the candidate's resume text to state.
 
@@ -23,9 +55,9 @@ def save_resume(tool_context: ToolContext, resume_text: str) -> dict:
     return {"status": "success", "message": "Resume saved."}
 
 
-# --- Tool: Save JD to state and trigger pipeline ---
+# --- Tool: Save JD text to state (for paste input) ---
 def save_jd(tool_context: ToolContext, job_description: str) -> dict:
-    """Saves the job description to state. Call this AFTER save_resume.
+    """Saves the job description to state.
 
     Args:
         tool_context: The tool context for state management.
@@ -35,7 +67,7 @@ def save_jd(tool_context: ToolContext, job_description: str) -> dict:
         A confirmation that the JD has been stored.
     """
     tool_context.state["JD"] = job_description
-    return {"status": "success", "message": "JD saved. Ready for analysis."}
+    return {"status": "success", "message": "JD saved."}
 
 
 # --- Step 1: Analyzer ---
@@ -230,32 +262,43 @@ analysis_pipeline = SequentialAgent(
 )
 
 
-# --- Root Agent: collects resume then JD sequentially ---
+# --- Root Agent: collects resume + JD from files or paste ---
 root_agent = Agent(
     name="resumatch_agent",
     model=model_name,
     description="ResuMatch — collects resume and JD, then runs analysis pipeline.",
     instruction="""You are ResuMatch, a friendly AI career advisor.
 
-You collect the resume and job description step by step, then hand off to analysis.
+You collect the resume and job description, then hand off to the analysis pipeline.
 
-FOLLOW THESE STEPS EXACTLY:
+YOU HAVE THESE TOOLS:
+- read_resume_file: Reads resume from resume.txt file
+- read_jd_file: Reads JD from jd.txt file
+- save_resume: Saves pasted resume text to state
+- save_jd: Saves pasted JD text to state
 
-STEP 1: Greet the user briefly. Ask them to paste their resume or LinkedIn profile text.
+FOLLOW THESE STEPS:
 
-STEP 2: When the user provides their resume text, call `save_resume` with exactly what they provided.
-         Then say "Got your resume! Now please paste the job description you want to match against."
+STEP 1: Greet the user. Ask how they want to provide their resume:
+  a) Type "analyze" or "go" to load from resume.txt and jd.txt files automatically
+  b) Paste resume text directly
 
-STEP 3: When the user provides the job description, call `save_jd` with exactly what they provided.
-         Then IMMEDIATELY transfer to the `analysis_pipeline` agent. Do NOT say anything else.
+STEP 2a (files): If user says "analyze", "go", "run", "start", or "load files":
+  - Call read_resume_file to load resume.txt
+  - Call read_jd_file to load jd.txt
+  - If both succeed, IMMEDIATELY transfer to analysis_pipeline
+
+STEP 2b (paste): If user pastes resume text:
+  - Call save_resume with their text
+  - Ask for the JD
+  - When they provide JD, call save_jd
+  - Then IMMEDIATELY transfer to analysis_pipeline
 
 RULES:
-- Call save_resume with the COMPLETE text the user provides. Do not summarize or truncate it.
-- Call save_jd with the COMPLETE text the user provides. Do not summarize or truncate it.
-- After save_jd succeeds, IMMEDIATELY transfer to analysis_pipeline. No extra messages.
-- If user gives both resume AND JD in one message, call save_resume first, then save_jd, then transfer.
-- NEVER ask for resume or JD twice. Once you have them, move forward.
+- After both resume and JD are in state, IMMEDIATELY transfer to analysis_pipeline.
+- Do NOT analyze anything yourself.
+- Do NOT ask for inputs twice.
 """,
-    tools=[save_resume, save_jd],
+    tools=[read_resume_file, read_jd_file, save_resume, save_jd],
     sub_agents=[analysis_pipeline],
 )
