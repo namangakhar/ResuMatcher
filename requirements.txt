@@ -1,1 +1,3 @@
 google-adk
+pg8000
+python-dotenv

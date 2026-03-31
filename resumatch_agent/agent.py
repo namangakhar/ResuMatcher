@@ -1,4 +1,5 @@
 import os
+import pg8000
 from dotenv import load_dotenv
 from google.adk.agents import Agent, SequentialAgent
 from google.adk.tools.tool_context import ToolContext
@@ -7,8 +8,78 @@ load_dotenv()
 
 model_name = os.getenv("MODEL", "gemini-2.5-flash")
 
+# --- Database connection helper ---
+def get_db_connection():
+    return pg8000.connect(
+        host=os.getenv("DB_HOST"),
+        port=int(os.getenv("DB_PORT", "5432")),
+        database=os.getenv("DB_NAME", "resumatch"),
+        user=os.getenv("DB_USER", "postgres"),
+        password=os.getenv("DB_PASSWORD"),
+    )
 
-# --- Tool: Save resume and JD to shared state ---
+
+# --- Tool: Save a profile to the database ---
+def save_profile(tool_context: ToolContext, name: str, resume_text: str) -> dict:
+    """Saves or updates a candidate's resume in the database for future use.
+
+    Args:
+        tool_context: The tool context for state management.
+        name: The candidate's full name (used as unique identifier).
+        resume_text: The candidate's full resume or LinkedIn profile text.
+
+    Returns:
+        A confirmation that the profile has been saved.
+    """
+    try:
+        conn = get_db_connection()
+        cursor = conn.cursor()
+        cursor.execute(
+            """INSERT INTO profiles (name, resume_text, updated_at)
+               VALUES (%s, %s, CURRENT_TIMESTAMP)
+               ON CONFLICT (name)
+               DO UPDATE SET resume_text = EXCLUDED.resume_text,
+                             updated_at = CURRENT_TIMESTAMP""",
+            (name.strip().lower(), resume_text),
+        )
+        conn.commit()
+        cursor.close()
+        conn.close()
+        return {"status": "success", "message": f"Profile for '{name}' saved successfully."}
+    except Exception as e:
+        return {"status": "error", "message": f"Failed to save profile: {str(e)}"}
+
+
+# --- Tool: Retrieve a profile from the database ---
+def get_profile(tool_context: ToolContext, name: str) -> dict:
+    """Retrieves a candidate's stored resume from the database by name.
+
+    Args:
+        tool_context: The tool context for state management.
+        name: The candidate's name to look up.
+
+    Returns:
+        The stored resume text or a not-found message.
+    """
+    try:
+        conn = get_db_connection()
+        cursor = conn.cursor()
+        cursor.execute(
+            "SELECT resume_text FROM profiles WHERE name = %s",
+            (name.strip().lower(),),
+        )
+        row = cursor.fetchone()
+        cursor.close()
+        conn.close()
+        if row:
+            return {"status": "found", "resume_text": row[0]}
+        else:
+            return {"status": "not_found", "message": f"No profile found for '{name}'. Please provide the resume text."}
+    except Exception as e:
+        return {"status": "error", "message": f"Failed to retrieve profile: {str(e)}"}
+
+
+# --- Tool: Save resume and JD to shared state for the pipeline ---
 def save_resume_and_jd(tool_context: ToolContext, resume_text: str, job_description: str) -> dict:
     """Saves the user's resume and job description into shared state for downstream agents.
 
@@ -229,24 +300,39 @@ root_agent = Agent(
     description="ResuMatch — AI career advisor that analyzes resumes against job descriptions.",
     instruction="""You are **ResuMatch**, a friendly AI career advisor.
 
-Your ONLY job is to collect two inputs from the user, then hand off to the analysis workflow.
+Your job is to collect a resume and a job description, then hand off to the analysis workflow.
+
+## You have 3 tools:
+- `get_profile(name)` — Look up a stored resume by name
+- `save_profile(name, resume_text)` — Save/update a resume in the database
+- `save_resume_and_jd(resume_text, job_description)` — Store both for analysis pipeline
 
 ## Conversation flow:
 
-1. Greet the user warmly. Tell them you'll help match their resume to a job description.
-   Ask them to provide their resume or LinkedIn profile text.
+1. Greet the user. Ask if they want to:
+   a) **Look up an existing profile** (just provide their name + a JD)
+   b) **Submit a new resume** (paste resume text + JD)
 
-2. When they provide their resume, thank them and ask for the job description (JD).
+2. **If they give a name to look up:**
+   - Use `get_profile` to fetch their stored resume.
+   - If found, show them a brief confirmation of what's on file, then ask for the JD.
+   - If not found, tell them and ask them to paste their resume instead.
 
-3. Once you have BOTH the resume AND the JD, use the `save_resume_and_jd` tool to store them.
-   After the tool confirms success, transfer to the `analysis_workflow` agent.
+3. **If they paste a new resume:**
+   - Ask for their name so you can save it.
+   - Use `save_profile` to store it in the database for future use.
+   - Then ask for the JD.
+
+4. **Once you have BOTH resume text AND JD:**
+   - Use `save_resume_and_jd` to store them in state.
+   - Transfer to the `analysis_workflow` agent.
 
 ## Rules:
-- Do NOT analyze anything yourself. Your only job is to collect resume + JD and hand off.
-- Do NOT ask for the resume or JD more than once each. Once you have both, immediately use the tool and transfer.
-- Be concise and friendly in your messages. Keep greetings short.
-- If the user provides both resume and JD in a single message, that's fine — use the tool immediately.
+- Do NOT analyze anything yourself. Only collect inputs and hand off.
+- Do NOT ask for the same thing twice. Once you have it, move on.
+- Be concise and friendly.
+- If user provides everything in one message (name + JD, or resume + JD), handle it all at once.
 """,
-    tools=[save_resume_and_jd],
+    tools=[save_resume_and_jd, save_profile, get_profile],
     sub_agents=[analysis_workflow],
 )
